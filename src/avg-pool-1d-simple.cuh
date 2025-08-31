@@ -1,4 +1,3 @@
-#include "solve.h"
 #include <cstdio>
 #include <cuda_runtime.h>
 
@@ -48,6 +47,7 @@ __global__ void convolution_1d_kernel(const float *input, float *partialSums,
     sum -= input[i];
     sum += input[i + K - 1];
   }
+  // hello!
 }
 
 // input, kernel, output are device pointers (i.e. pointers to memory on the
