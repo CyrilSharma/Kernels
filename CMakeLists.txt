@@ -11,16 +11,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-# Find CUDA
-find_package(CUDA REQUIRED)
+# Override CMake's default CUDA architecture
+set(CMAKE_CUDA_ARCHITECTURES 75)
 
-# Set CUDA flags
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -arch=sm_60")  # Adjust based on your GPU architecture
+# Set CUDA flags - explicitly override any defaults and disable default generation
+set(CMAKE_CUDA_FLAGS "-O3 -arch=compute_75 -code=sm_75 --generate-code=arch=compute_75,code=sm_75")
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/src)
-include_directories(${CUDA_INCLUDE_DIRS})
 
 # Source files
 set(SOURCES
@@ -37,7 +35,7 @@ set(TEST_SOURCES
 # Create main project target
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(${PROJECT_NAME} INTERFACE ${CUDA_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} INTERFACE cuda cudart)
 
 # Create test executables
 foreach(test_source ${TEST_SOURCES})

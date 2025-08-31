@@ -30,9 +30,7 @@ def test(ctx, target=None):
     try:
         if target:
             # Build and run specific test
-            print(f"make {target}")
             ctx.run(f"make {target}")
-            print(f"./{target}")
             ctx.run(f"./{target}")
         else:
             # Run all tests
@@ -95,3 +93,24 @@ def help(ctx):
         ctx.run("make help")
     finally:
         os.chdir("..")
+
+@task
+def path(ctx, target):
+    """Output the exact path of a test executable for profiling tools like ncu"""
+    if not os.path.exists(BUILD_DIR):
+        print("Build directory doesn't exist. Run 'inv configure' first.")
+        return
+    
+    test_path = os.path.join(BUILD_DIR, target)
+    if os.path.exists(test_path):
+        print(test_path)
+    else:
+        print(f"Test executable '{target}' not found in {BUILD_DIR}")
+        print("Available tests:")
+        os.chdir(BUILD_DIR)
+        try:
+            for test_source in ["test-avg-pool-1d", "test-avg-pool-1d-simple"]:
+                if os.path.exists(test_source):
+                    print(f"  {test_source}")
+        finally:
+            os.chdir("..")
