@@ -1,67 +1,56 @@
-from invoke import task
+from invoke import task, Context
 import os
-import subprocess
-import sys
+from functools import wraps
 
 # Ensure we're in the right directory
 BUILD_DIR = "build"
 
+def requires_build_dir(create_if_missing=False):
+    """Decorator to ensure build directory exists and run inside it"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(ctx, *args, **kwargs):
+            if not os.path.exists(BUILD_DIR):
+                if create_if_missing:
+                    os.makedirs(BUILD_DIR)
+                    print(f"Created build directory: {BUILD_DIR}")
+                else:
+                    print("Build directory doesn't exist. Run 'inv configure' first.")
+                    return
+            with ctx.cd(BUILD_DIR):
+                return func(ctx, *args, **kwargs)
+        return wrapper
+    return decorator
+
 @task
+@requires_build_dir()
 def build(ctx, target="all"):
     """Build a target using the generated Makefile"""
-    if not os.path.exists(BUILD_DIR):
-        print("Build directory doesn't exist. Run 'inv configure' first.")
-        return
-    
-    os.chdir(BUILD_DIR)
-    try:
-        ctx.run(f"make {target}")
-    finally:
-        os.chdir("..")
+    ctx.run(f"make {target}")
 
 @task
+@requires_build_dir()
 def test(ctx, target=None):
     """Run tests using the generated Makefile"""
-    if not os.path.exists(BUILD_DIR):
-        print("Build directory doesn't exist. Run 'inv configure' first.")
-        return
-    
-    os.chdir(BUILD_DIR)
-    try:
-        if target:
-            # Build and run specific test
-            ctx.run(f"make {target}")
-            ctx.run(f"./{target}")
-        else:
-            # Run all tests
-            ctx.run("make test")
-    finally:
-        os.chdir("..")
+    if target:
+        target = f"test-{target}"
+        ctx.run(f"make {target}")
+        ctx.run(f"./{target}")
+    else:
+        ctx.run("make test")
 
 @task
+@requires_build_dir(create_if_missing=True)
 def configure(ctx):
     """Configure the project with CMake"""
-    if not os.path.exists(BUILD_DIR):
-        os.makedirs(BUILD_DIR)
-    
-    os.chdir(BUILD_DIR)
-    try:
-        ctx.run("cmake ..")
-        print("Project configured successfully!")
-    finally:
-        os.chdir("..")
+    ctx.run("cmake ..")
+    print("Project configured successfully!")
 
 @task
+@requires_build_dir()
 def clean(ctx):
     """Clean build artifacts"""
-    if os.path.exists(BUILD_DIR):
-        os.chdir(BUILD_DIR)
-        try:
-            ctx.run("make clean")
-        finally:
-            os.chdir("..")
-    else:
-        print("Build directory doesn't exist.")
+    ctx.run("make clean")
 
 @task
 def rebuild(ctx):
@@ -71,46 +60,25 @@ def rebuild(ctx):
     build(ctx)
 
 @task
+@requires_build_dir()
 def run(ctx, target):
     """Build and run a specific target"""
     build(ctx, target)
-    if os.path.exists(BUILD_DIR):
-        os.chdir(BUILD_DIR)
-        try:
-            ctx.run(f"./{target}")
-        finally:
-            os.chdir("..")
+    ctx.run(f"./{target}")
 
 @task
+@requires_build_dir()
 def help(ctx):
     """Show available make targets"""
-    if not os.path.exists(BUILD_DIR):
-        print("Build directory doesn't exist. Run 'inv configure' first.")
-        return
-    
-    os.chdir(BUILD_DIR)
-    try:
-        ctx.run("make help")
-    finally:
-        os.chdir("..")
+    ctx.run("make help")
 
 @task
-def path(ctx, target):
-    """Output the exact path of a test executable for profiling tools like ncu"""
-    if not os.path.exists(BUILD_DIR):
-        print("Build directory doesn't exist. Run 'inv configure' first.")
-        return
-    
-    test_path = os.path.join(BUILD_DIR, target)
-    if os.path.exists(test_path):
-        print(test_path)
+@requires_build_dir()
+def profile(ctx, target=None):
+    """Build and run a profiling executable"""
+    if target:
+        target = f"profile-{target}"
+        ctx.run(f"make {target}")
+        ctx.run(f"./{target}")
     else:
-        print(f"Test executable '{target}' not found in {BUILD_DIR}")
-        print("Available tests:")
-        os.chdir(BUILD_DIR)
-        try:
-            for test_source in ["test-avg-pool-1d", "test-avg-pool-1d-simple"]:
-                if os.path.exists(test_source):
-                    print(f"  {test_source}")
-        finally:
-            os.chdir("..")
+        ctx.run("make profile")

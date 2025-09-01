@@ -32,6 +32,11 @@ set(TEST_SOURCES
     test/test-avg-pool-1d-simple.cu
 )
 
+# Profile files
+set(PROFILE_SOURCES
+    profile/profile-avg-pool-1d.cu
+)
+
 # Create main project target
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_SOURCE_DIR}/src)
@@ -46,6 +51,14 @@ foreach(test_source ${TEST_SOURCES})
     
     # Add test
     add_test(NAME ${test_name} COMMAND ${test_name})
+endforeach()
+
+# Create profile executables
+foreach(profile_source ${PROFILE_SOURCES})
+    get_filename_component(profile_name ${profile_source} NAME_WE)
+    add_executable(${profile_name} ${profile_source})
+    target_link_libraries(${profile_name} ${PROJECT_NAME})
+    target_compile_features(${profile_name} PRIVATE cxx_std_17)
 endforeach()
 
 # Set output directories
